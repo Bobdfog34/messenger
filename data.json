@@ -1,0 +1,26 @@
+{
+  "users": {
+    "afmvp": {
+      "id": "afmvp",
+      "name": "AFVMP",
+      "username": "afmvp",
+      "avatarColor": "#3390ec",
+      "online": true,
+      "lastSeen": 1789129194932,
+      "blocked": [],
+      "bio": "Официальные уведомления мессенджера",
+      "salt": "a6f996e9-130d-4162-b3a2-91efea8b741a",
+      "passwordHash": "",
+      "verified": true,
+      "banned": false,
+      "sysadmin": true,
+      "createdAt": 1
+    }
+  },
+  "privateMessages": {},
+  "directChats": {},
+  "pins": {},
+  "chatTimers": {},
+  "groups": {},
+  "groupMessages": {}
+}
