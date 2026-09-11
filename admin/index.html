@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AFMVP Messenger · Панель управления</title>
+<style>
+  :root {
+    --bg: #0f1419; --panel: #1a2129; --panel2: #202a34; --line: #2b3641;
+    --text: #e8edf1; --muted: #8b98a5; --accent: #3390ec; --green: #37b55c;
+    --red: #e05252; --blue: #3390ec; --gold: #f0a63f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: "Segoe UI", system-ui, sans-serif; font-size: 14px; }
+  button { font-family: inherit; cursor: pointer; }
+  input, textarea, select { font-family: inherit; }
+  .hidden { display: none !important; }
+
+  #loginScreen { max-width: 380px; margin: 90px auto; padding: 28px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+  #loginScreen h1 { font-size: 18px; margin-bottom: 4px; }
+  #loginScreen p { color: var(--muted); font-size: 12.5px; margin-bottom: 16px; }
+  #loginScreen input { width: 100%; padding: 11px 12px; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; color: var(--text); margin-bottom: 12px; outline: none; }
+  #loginScreen input:focus { border-color: var(--accent); }
+  #loginScreen button { width: 100%; padding: 11px; background: var(--accent); color: #fff; border: 0; border-radius: 10px; font-weight: 600; }
+  #loginError { color: var(--red); font-size: 12.5px; margin-top: 10px; }
+  #pwHint { color: var(--muted); font-size: 12px; margin-top: 14px; line-height: 1.5; }
+
+  header { display: flex; align-items: center; gap: 12px; padding: 12px 18px; background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 20; }
+  header .logo { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg, var(--blue), #4b6bd6); display: flex; align-items: center; justify-content: center; font-weight: 700; }
+  header h1 { font-size: 15px; font-weight: 600; flex: 1; }
+  header button { padding: 7px 14px; background: var(--panel2); border: 1px solid var(--line); border-radius: 9px; color: var(--text); }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; padding: 14px 18px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; }
+  .stat .num { font-size: 24px; font-weight: 700; }
+  .stat .lbl { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  .tabs { display: flex; gap: 6px; padding: 0 18px 12px; }
+  .tabs button { padding: 8px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; color: var(--muted); font-weight: 600; }
+  .tabs button.on { color: var(--text); border-color: var(--accent); background: rgba(51,144,236,.12); }
+  .tabs button.pulse { animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 3px rgba(224,82,82,.25); } }
+
+  .main { display: flex; gap: 14px; padding: 0 18px 30px; align-items: flex-start; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .col-left { flex: 1.6; }
+  .col-right { flex: 1; position: sticky; top: 68px; }
+
+  .searchbox { display: flex; gap: 8px; margin-bottom: 12px; }
+  .searchbox input { flex: 1; padding: 10px 12px; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; color: var(--text); outline: none; }
+  .searchbox input:focus { border-color: var(--accent); }
+
+  .userRow { display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-bottom: 1px solid var(--line); cursor: pointer; border-radius: 8px; }
+  .userRow:hover { background: var(--panel2); }
+  .userRow.sel { background: rgba(51,144,236,.1); }
+  .adot { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; }
+  .uinfo { flex: 1; min-width: 0; }
+  .uinfo .un { display: flex; align-items: center; gap: 5px; font-weight: 600; }
+  .uinfo .us { color: var(--muted); font-size: 12px; }
+  .utag { font-size: 11px; border-radius: 6px; padding: 2px 7px; font-weight: 600; }
+.utag.v { background: rgba(51,144,236,.15); color: var(--blue); }
+.utag.p { background: rgba(240,166,63,.15); color: var(--gold); }
+.utag.banned { background: rgba(224,82,82,.15); color: var(--red); }
+  .udot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .udot.on { background: var(--green); }
+  .udot.off { background: var(--muted); }
+
+  .formrow { margin-bottom: 12px; }
+  .formrow label { display: block; color: var(--muted); font-size: 12px; margin-bottom: 5px; }
+  .formrow input, .formrow textarea { width: 100%; padding: 9px 11px; background: var(--panel2); border: 1px solid var(--line); border-radius: 9px; color: var(--text); outline: none; }
+  .formrow input:focus, .formrow textarea:focus { border-color: var(--accent); }
+
+  .rowbtns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .rowbtns button { padding: 8px 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--panel2); color: var(--text); font-weight: 600; font-size: 13px; }
+  .rowbtns button.ok { background: var(--green); color: #fff; border-color: transparent; }
+  .rowbtns button.blue { background: var(--blue); color: #fff; border-color: transparent; }
+  .rowbtns button.danger { background: var(--red); color: #fff; border-color: transparent; }
+  .switch { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--panel2); border: 1px solid var(--line); border-radius: 9px; margin-bottom: 10px; cursor: pointer; }
+  .switch .lbl { color: var(--muted); font-size: 13px; }
+  .switch input { width: 40px; height: 22px; appearance: none; background: #3a4550; border-radius: 22px; position: relative; outline: none; }
+  .switch input:checked { background: var(--accent); }
+  .switch input::after { content: ""; position: absolute; width: 18px; height: 18px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: .15s; }
+  .switch input:checked::after { left: 20px; }
+
+  #msgList .msg { padding: 9px 12px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: flex-start; }
+  #msgList .msg .mt { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  #msgList .msg .mb { flex: 1; min-width: 0; }
+  #msgList .msg .mb .mh { font-size: 12px; color: var(--muted); }
+  #msgList .msg .mb .mtxt { word-break: break-word; margin-top: 2px; }
+  #msgList .msg button { background: var(--red); color: #fff; border: 0; border-radius: 8px; padding: 5px 10px; font-size: 12px; }
+
+  .hint { color: var(--muted); font-size: 12.5px; }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; z-index: 60; }
+  .modalbox { width: 400px; max-width: 92vw; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 18px 16px; }
+  .modalbox h3 { font-size: 15px; margin-bottom: 12px; }
+  .modalbox textarea, .modalbox input { width: 100%; padding: 10px 11px; background: var(--panel2); border: 1px solid var(--line); border-radius: 9px; color: var(--text); outline: none; margin-bottom: 8px; font-size: 13px; }
+  .modalbox textarea { resize: vertical; min-height: 84px; }
+  .grouprow { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--panel2); border: 1px solid var(--line); border-radius: 9px; margin-bottom: 6px; flex-wrap: wrap; }
+  .grouprow .gg { font-size: 12.5px; color: var(--muted); }
+  .auditrow { padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 13px; display: flex; gap: 10px; }
+  .auditrow .at { color: var(--muted); font-size: 11.5px; white-space: nowrap; margin-top: 2px; }
+  .auditrow .ad { flex: 1; min-width: 0; }
+  .toast { position: fixed; top: 16px; right: 16px; background: var(--panel2); border: 1px solid var(--line); padding: 12px 16px; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.4); z-index: 50; opacity: 0; transform: translateY(-8px); transition: .2s; }
+  .toast.show { opacity: 1; transform: none; }
+  .toast.err { border-color: var(--red); }
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <h1>AFMVP Messenger</h1>
+  <p>Панель управления мессенджером. Войдите как администратор.</p>
+  <input id="pw" type="password" placeholder="Пароль администратора">
+  <button id="loginBtn">Войти</button>
+  <div id="loginError"></div>
+  <div id="pwHint" class="hidden">Пароль сгенерирован и сохранён в <b>AFMVP-Messenger\admin\.adminpass</b>. Откройте этот файл, скопируйте пароль и введите его. Можно сменить пароль, просто отредактировав файл.</div>
+</div>
+
+<div id="app" class="hidden">
+  <header>
+    <div class="logo">A</div>
+    <h1>Панель управления мессенджером</h1>
+    <button id="announceBtn" title="Отправить объявление всем пользователям">📢 Объявление</button>
+    <button id="backupBtn" title="Скачать резервную копию данных (data.json)">⬇ Бэкап</button>
+    <button id="pwBtn" title="Сменить пароль администратора">⚙ Пароль</button>
+    <button id="logoutBtn">Выйти</button>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="tabs">
+    <button id="tabUsers" class="on">Пользователи</button>
+    <button id="tabMsgs">Сообщения</button>
+    <button id="tabAudit">Журнал</button>
+  </div>
+
+  <div id="tabUsersPanel" class="main">
+    <div class="panel col-left">
+      <div class="searchbox">
+        <input id="userSearch" placeholder="Поиск по имени или нику…">
+        <button id="newUserBtn" class="blue">+ Создать</button>
+      </div>
+      <div id="userList"></div>
+    </div>
+    <div class="panel col-right">
+      <div id="userDetail"></div>
+    </div>
+  </div>
+
+  <div id="tabMsgsPanel" class="main hidden">
+    <div class="panel col-left">
+      <div class="searchbox">
+        <input id="msgSearch" placeholder="Поиск по тексту…">
+      </div>
+      <div id="msgList"></div>
+    </div>
+    <div class="panel col-right">
+      <div id="msgDetail">
+        <div class="hint">Выберите пользователя, чтобы видеть только его переписку.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tabAuditPanel" class="panel hidden" style="margin:0 18px 30px">
+    <div id="auditList"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const API = '/api/admin/';
+let token = sessionStorage.getItem('admin_token');
+let users = [];
+let selectedId = null;
+let msgUserFilter = null;
+
+const $ = s => document.querySelector(s);
+
+function toast(msg, err) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (err ? ' err' : '');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+async function api(path, opts = {}) {
+  const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  const res = await fetch(API + path, Object.assign({}, opts, { headers, body: opts.body ? JSON.stringify(opts.body) : undefined }));
+  if (res.status === 401) { sessionStorage.removeItem('admin_token'); location.reload(); throw new Error('401'); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Ошибка ' + res.status);
+  return data;
+}
+
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function timeAgo(ts) {
+  if (!ts) return '—';
+  const d = Date.now() - ts;
+  if (d < 60000) return 'только что';
+  if (d < 3600000) return Math.floor(d / 60000) + ' мин назад';
+  if (d < 86400000) return Math.floor(d / 3600000) + ' ч назад';
+  return new Date(ts).toLocaleDateString('ru-RU');
+}
+function hhmm(ts) { const d = new Date(ts); return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }); }
+function avatarText(name) { return (name || '?').trim().slice(0, 1).toUpperCase(); }
+
+/* ---- авторизация ---- */
+$('#loginBtn').onclick = async () => {
+  try {
+    const r = await fetch(API + 'login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: $('#pw').value }) });
+    const d = await r.json();
+    if (!r.ok) { $('#loginError').textContent = d.error || 'Неверный пароль'; return; }
+    token = d.token; sessionStorage.setItem('admin_token', token);
+    enterApp();
+  } catch (e) { $('#loginError').textContent = 'Сервер недоступен'; }
+};
+$('#pw').addEventListener('keydown', e => { if (e.key === 'Enter') $('#loginBtn').click(); });
+$('#logoutBtn').onclick = () => { sessionStorage.removeItem('admin_token'); token = null; location.reload(); };
+
+function enterApp() {
+  $('#loginScreen').classList.add('hidden');
+  $('#app').classList.remove('hidden');
+  $('#tabUsers').classList.add('on');
+  loadAll();
+  setInterval(loadStats, 20000);
+  setInterval(loadUsers, 20000);
+}
+
+window.onload = () => {
+  if (!token) return;
+  api('stats').then(enterApp).catch(e => { sessionStorage.removeItem('admin_token'); });
+};
+
+/* ---- вкладки ---- */
+$('#tabUsers').onclick = () => { $('#tabUsers').classList.add('on'); $('#tabMsgs').classList.remove('on'); $('#tabAudit').classList.remove('on'); $('#tabUsersPanel').classList.remove('hidden'); $('#tabMsgsPanel').classList.add('hidden'); $('#tabAuditPanel').classList.add('hidden'); $('#tabMsgs').classList.remove('pulse'); };
+$('#tabMsgs').onclick = () => { $('#tabMsgs').classList.add('on'); $('#tabUsers').classList.remove('on'); $('#tabAudit').classList.remove('on'); $('#tabUsersPanel').classList.add('hidden'); $('#tabMsgsPanel').classList.remove('hidden'); $('#tabAuditPanel').classList.add('hidden'); loadMessages(); };
+$('#tabAudit').onclick = () => { $('#tabAudit').classList.add('on'); $('#tabUsers').classList.remove('on'); $('#tabMsgs').classList.remove('on'); $('#tabUsersPanel').classList.add('hidden'); $('#tabMsgsPanel').classList.add('hidden'); $('#tabAuditPanel').classList.remove('hidden'); loadAudit(); };
+$('#announceBtn').onclick = () => modal(
+  '<h3>📢 Рассылка всем</h3><p class="hint" style="margin-bottom:10px">Придёт каждому как сообщение от пользователя <b>AFVMP</b> (чат появится автоматически).</p><textarea id="mAnn" placeholder="Текст объявления…"></textarea>',
+  async (box) => {
+    const text = box.querySelector('#mAnn').value.trim();
+    if (!text) return toast('Введите текст', true);
+    try { await api('announcement', { method: 'POST', body: { text } }); toast('Объявление отправлено всем'); }
+    catch (e) { toast(e.message, true); }
+    return true;
+  });
+$('#backupBtn').onclick = async () => {
+  try {
+    const res = await fetch(API + 'backup', { headers: { 'Authorization': 'Bearer ' + token } });
+    if (!res.ok) throw new Error('Ошибка ' + res.status);
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'messenger-backup-' + Date.now() + '.json';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast('Резервная копия скачана');
+  } catch (e) { toast(e.message, true); }
+};
+$('#pwBtn').onclick = () => modal(
+  '<h3>⚙ Смена пароля администратора</h3><input id="mCur" type="password" placeholder="Текущий пароль"><input id="mNew" type="password" placeholder="Новый пароль (мин. 6 символов)">',
+  async (box) => {
+    const current = box.querySelector('#mCur').value;
+    const password = box.querySelector('#mNew').value;
+    try { await api('password', { method: 'POST', body: { current, password } }); toast('Пароль сменён'); }
+    catch (e) { toast(e.message, true); return false; }
+    return true;
+  });
+
+function modal(htmlContent, onSubmit) {
+  const ov = document.createElement('div');
+  ov.className = 'modal';
+  ov.innerHTML = `<div class="modalbox">${htmlContent}
+    <div class="rowbtns" style="margin-top:12px">
+      <button class="m-cancel">Отмена</button>
+      <button class="m-ok blue">OK</button>
+    </div></div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  const okBtn = ov.querySelector('.m-ok');
+  const cancelBtn = ov.querySelector('.m-cancel');
+  cancelBtn.onclick = close;
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  okBtn.onclick = () => { const r = onSubmit(ov); if (r && typeof r.then === 'function') { okBtn.disabled = true; r.then(done => { if (done) close(); else okBtn.disabled = false; }); } else if (r) close(); };
+  const first = ov.querySelector('input, textarea');
+  if (first) first.focus();
+  return ov;
+}
+
+async function loadAudit() {
+  try {
+    const list = await api('audit');
+    $('#auditList').innerHTML = list.length
+      ? list.map(a => `
+        <div class="auditrow">
+          <div class="at">${new Date(a.time).toLocaleString('ru-RU')}</div>
+          <div class="ad"><b>${esc(a.action)}</b>${a.detail ? ' — ' + esc(a.detail) : ''}</div>
+        </div>`).join('')
+      : '<div class="hint" style="padding:14px">Журнал пуст</div>';
+  } catch (e) { toast(e.message, true); }
+}
+
+/* ---- данные ---- */
+async function loadAll() { await Promise.all([loadStats(), loadUsers()]); }
+async function loadStats() {
+  try {
+    const s = await api('stats');
+    $('#stats').innerHTML = [
+      ['Пользователей', s.users], ['Онлайн', s.online],
+      ['Верифицированы', s.verified], ['Забанены', s.banned],
+      ['Сообщений', s.messagesTotal], ['Чатов', s.chatsTotal]
+    ].map(x => `<div class="stat"><div class="num">${x[1]}</div><div class="lbl">${x[0]}</div></div>`).join('');
+  } catch (e) {}
+}
+async function loadUsers() {
+  try {
+    users = await api('users');
+    renderUsers();
+    if (selectedId && users.some(u => u.id === selectedId)) renderDetail(users.find(u => u.id === selectedId));
+  } catch (e) {}
+}
+
+function renderUsers() {
+  const q = ($('#userSearch').value || '').trim().toLowerCase();
+  const list = users.filter(u => !q || u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q) || u.id.includes(q));
+  if (!list.length) { $('#userList').innerHTML = '<div class="hint" style="padding:14px">Никого не найдено</div>'; return; }
+  $('#userList').innerHTML = list.map(u => `
+    <div class="userRow ${u.id === selectedId ? 'sel' : ''}" onclick="selectUser('${u.id}')">
+      <div class="adot" style="background:${u.avatarColor}">${avatarText(u.name)}</div>
+      <div class="uinfo">
+        <div class="un">${esc(u.name)}${u.verified ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="#3390ec"><path d="M12 2 9.7 3.9 6.8 3.6l-.9 2.8-2.8.9 1 2.7-.9 2.8 2.8.9.9 2.8 2.9-.3 2.3 1.9 2.3-1.9 2.9.3.9-2.8 2.8-.9-.9-2.8 1-2.7-2.8-.9-.9-2.8-2.9.3L12 2zm-1.1 13.2-2.7-2.7 1.3-1.3 1.4 1.4 3.4-3.4 1.3 1.3-4.7 4.7z"/></svg>' : ''}
+        ${u.sysadmin ? '<span class="utag v">SYSTEM</span>' : ''}
+        ${u.premium ? '<span class="utag p">⭐ PREMIUM</span>' : ''}
+        ${u.banned ? '<span class="utag banned">БАН</span>' : ''}</div>
+        <div class="us">@${esc(u.username)} · <span class="udot ${u.online ? 'on' : 'off'}"></span> ${u.online ? 'в сети' : timeAgo(u.lastSeen)}</div>
+      </div>
+      <div class="hint">${u.messageCount} msg</div>
+    </div>`).join('');
+}
+
+function selectUser(id) {
+  if (msgUserFilter) { msgUserFilter = id; loadMessages(); }
+  selectedId = id;
+  const u = users.find(x => x.id === id);
+  renderUsers();
+  if (u) renderDetail(u);
+}
+
+function renderDetail(u) {
+  $('#userDetail').innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div class="adot" style="width:46px;height:46px;background:${u.avatarColor}">${avatarText(u.name)}</div>
+      <div>
+        <div class="un" style="font-size:16px">${esc(u.name)}${u.verified ? ' ✅' : ''}</div>
+        <div class="hint">@${esc(u.username)} · ID: <span style="word-break:break-all">${u.id}</span></div>
+      </div>
+    </div>
+    <button style="width:100%;margin-bottom:12px;padding:9px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--text)" onclick="showUserMsgs('${u.id}')">📩 Показать переписку</button>
+
+    <div class="formrow"><label>Имя</label><input id="fName" value="${esc(u.name)}"></div>
+    <div class="formrow"><label>Никнейм</label><input id="fUser" value="${esc(u.username)}"></div>
+    <div class="formrow"><label>О себе</label><textarea id="fBio" rows="2">${esc(u.bio || '')}</textarea></div>
+
+    <div class="switch" onclick="toggleV(event,'${u.id}')"><div class="lbl">✅ Галочка (верификация)</div><input type="checkbox" ${u.verified ? 'checked' : ''} data-k="v"></div>
+    <div class="switch" onclick="toggleP(event,'${u.id}')"><div class="lbl">⭐ Премиум (даёт эмодзи-статус)</div><input type="checkbox" ${u.premium ? 'checked' : ''} data-k="p"></div>
+    ${u.sysadmin
+      ? '<div class="hint" style="margin:6px 0">Системный пользователь для рассылок — защищён от бана и удаления.</div>'
+      : `<div class="switch" onclick="toggleB(event,'${u.id}')"><div class="lbl">🚫 Бан (заблокировать)</div><input type="checkbox" ${u.banned ? 'checked' : ''} data-k="b"></div>`}
+
+    <div class="rowbtns">
+      <button class="blue" onclick="saveUser()">Сохранить</button>
+      ${u.sysadmin ? '' : '<button onclick="resetPass()">Сбросить пароль</button>'}
+      ${u.sysadmin ? '' : '<button class="danger" onclick="deleteUser()">Удалить</button>'}
+    </div>
+    <div class="formrow" style="margin-top:14px" id="passBox"><label>Новый пароль</label><input id="fPass" placeholder="мин. 4 символа"></div>
+  `;
+}
+
+function toggleV(e, id) { if (e.target.dataset.k !== 'v') return; api('user/' + id + '/verify', { method: 'POST', body: { verified: e.target.checked } }).then(() => { toast('Галочка обновлена'); loadAll(); }).catch(e => toast(e.message, true)); }
+function toggleB(e, id) { if (e.target.dataset.k !== 'b') return; api('user/' + id + '/ban', { method: 'POST', body: { banned: e.target.checked } }).then(() => { toast(e.target.checked ? 'Пользователь забанен' : 'Бан снят'); loadAll(); }).catch(e2 => toast(e2.message, true)); }
+function toggleP(e, id) { if (e.target.dataset.k !== 'p') return; api('user/' + id + '/premium', { method: 'POST', body: { premium: e.target.checked } }).then(() => { toast(e.target.checked ? 'Премиум выдан' : 'Премиум отозван'); loadAll(); }).catch(e2 => toast(e2.message, true)); }
+
+async function saveUser() {
+  const u = users.find(x => x.id === selectedId);
+  try {
+    await api('user/' + u.id, { method: 'PATCH', body: {
+      name: $('#fName').value, username: $('#fUser').value, bio: $('#fBio').value
+    }});
+    toast('Сохранено'); loadAll();
+  } catch (e) { toast(e.message, true); }
+}
+async function resetPass() {
+  const pw = $('#fPass').value;
+  if (pw.length < 4) return toast('Введите новый пароль (мин. 4 символа)', true);
+  try { await api('user/' + selectedId + '/password', { method: 'POST', body: { password: pw } }); toast('Пароль сброшен'); $('#passBox').querySelector('input').value = ''; }
+  catch (e) { toast(e.message, true); }
+}
+async function deleteUser() {
+  if (!confirm('Точно удалить пользователя со всей перепиской?')) return;
+  try { await api('user/' + selectedId + '/delete', { method: 'POST' }); toast('Пользователь удалён'); selectedId = null; loadAll(); renderDetail(null); $('#userDetail').innerHTML = '<div class="hint">Выберите пользователя</div>'; }
+  catch (e) { toast(e.message, true); }
+}
+
+$('#newUserBtn').onclick = () => {
+  const name = prompt('Имя нового пользователя:');
+  if (!name) return;
+  const username = prompt('Никнейм (латиницей, без @):');
+  const password = prompt('Пароль (мин. 4 символа):');
+  if (!username || !password) return alert('Нужны ник и пароль');
+  api('user', { method: 'POST', body: { name, username, password } })
+    .then(u => { toast('Создан: @' + u.username); loadAll(); selectUser(u.id); })
+    .catch(e => toast(e.message, true));
+};
+
+/* ---- сообщения ---- */
+async function loadMessages() {
+  try {
+    const q = ($('#msgSearch').value || '').trim().toLowerCase();
+    const list = msgUserFilter ? await api('messages?user=' + msgUserFilter) : await api('messages');
+    const shown = list.filter(m => !q || String(m.text || '').toLowerCase().includes(q));
+    let groupsHtml = '';
+    if (msgUserFilter) {
+      const groups = {};
+      shown.forEach(m => {
+        if (!m.other) return;
+        const g = groups[m.other] || { name: m.otherName, uname: m.otherUsername, count: 0 };
+        g.count++;
+        groups[m.other] = g;
+      });
+      groupsHtml = '<div style="margin-bottom:10px">' + Object.entries(groups).map(([id, g]) => `
+        <div class="grouprow">
+          <span class="gg">Переписка с @${esc(g.uname)} <b style="color:var(--text)">${esc(g.name)}</b> — ${g.count} сообщений</span>
+          <button class="danger" onclick="clearChat('${id}')">Очистить чат</button>
+        </div>`).join('') + '</div>';
+    }
+    $('#msgList').innerHTML = groupsHtml + (shown.length
+      ? shown.map(m => `
+        <div class="msg">
+          <div class="mb">
+            <div class="mh">${esc(m.fromName || m.from)} → ${esc(m.toName || m.to)} · ${hhmm(m.time)}</div>
+            <div class="mtxt">${esc(m.type === 'text' ? m.text : '[' + m.type + ']')}</div>
+          </div>
+          <div class="mt">${timeAgo(m.time)}</div>
+          <button onclick="delMsg('${m.id}')">Удалить</button>
+        </div>`).join('')
+      : '<div class="hint" style="padding:14px">Нет сообщений</div>');
+  } catch (e) { toast(e.message, true); }
+}
+async function clearChat(otherId) {
+  if (!confirm('Очистить всю переписку между этими пользователями?')) return;
+  try {
+    await api('chat/clear', { method: 'POST', body: { a: msgUserFilter, b: otherId } });
+    toast('Переписка очищена');
+    loadMessages(); loadStats();
+  } catch (e) { toast(e.message, true); }
+}
+function showUserMsgs(id) {
+  msgUserFilter = id;
+  $('#tabMsgs').classList.add('pulse');
+  $('#tabMsgs').click();
+  loadMessages();
+}
+async function delMsg(id) {
+  if (!confirm('Удалить сообщение у всех?')) return;
+  try { await api('message/delete', { method: 'POST', body: { messageId: id } }); toast('Удалено'); loadMessages(); loadStats(); }
+  catch (e) { toast(e.message, true); }
+}
+$('#msgSearch').addEventListener('input', () => loadMessages());
+$('#userSearch').addEventListener('input', renderUsers);
+
+window.selectUser = selectUser;
+window.showUserMsgs = showUserMsgs;
+window.toggleV = toggleV;
+window.toggleB = toggleB;
+window.toggleP = toggleP;
+window.delMsg = delMsg;
+window.clearChat = clearChat;
+</script>
+</body>
+</html>
